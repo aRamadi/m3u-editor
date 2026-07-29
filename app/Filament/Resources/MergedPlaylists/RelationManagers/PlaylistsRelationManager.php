@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\MergedPlaylists\RelationManagers;
 
 use App\Enums\Status;
+use App\Models\Playlist;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
@@ -30,20 +31,24 @@ class PlaylistsRelationManager extends RelationManager
     {
         return $table->persistFiltersInSession()
             ->persistSortInSession()
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->withCount('enabled_channels')
+                ->withCount('enabled_groups')
+            )
             ->recordTitleAttribute('name')
+            ->defaultSort(fn (Builder $query, string $direction): Builder => $query->orderByRaw("merged_playlist_playlist.sort {$direction}"))
+            ->reorderable('merged_playlist_playlist.sort')
             ->columns([
                 TextColumn::make('name'),
                 TextColumn::make('groups_count')
                     ->label(__('Groups'))
                     ->counts('groups')
+                    ->description(fn (Playlist $record): string => __('Enabled: :count', ['count' => $record->enabled_groups_count ?? '—']))
                     ->sortable(),
                 TextColumn::make('channels_count')
                     ->label(__('Channels'))
                     ->counts('channels')
-                    ->sortable(),
-                TextColumn::make('enabled_channels_count')
-                    ->label(__('Enabled Channels'))
-                    ->counts('enabled_channels')
+                    ->description(fn (Playlist $record): string => __('Enabled: :count', ['count' => $record->enabled_channels_count ?? '—']))
                     ->sortable(),
                 TextColumn::make('status')
                     ->sortable()

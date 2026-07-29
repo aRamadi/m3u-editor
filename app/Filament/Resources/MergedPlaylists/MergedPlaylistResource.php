@@ -9,6 +9,7 @@ use App\Filament\Resources\MergedPlaylists\Pages\EditMergedPlaylist;
 use App\Filament\Resources\MergedPlaylists\Pages\ListMergedPlaylists;
 use App\Filament\Resources\MergedPlaylists\Pages\ViewMergedPlaylist;
 use App\Filament\Resources\MergedPlaylists\RelationManagers\PlaylistsRelationManager;
+use App\Livewire\MergedPlaylistGroupManager;
 use App\Models\MergedPlaylist;
 use App\Models\PlaylistAuth;
 use App\Models\StreamProfile;
@@ -31,6 +32,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group as ComponentsGroup;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -608,6 +610,14 @@ class MergedPlaylistResource extends Resource implements CopilotResource
                                 ->columns(2)
                                 ->icon('heroicon-m-arrow-up-right')
                                 ->schema($outputScheme),
+
+                            Tab::make(__('Group Order'))
+                                ->columns(1)
+                                ->icon('heroicon-m-bars-3')
+                                ->schema([
+                                    Livewire::make(MergedPlaylistGroupManager::class)
+                                        ->columnSpanFull(),
+                                ]),
                         ]),
                 ]),
         ];

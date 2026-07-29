@@ -19,6 +19,10 @@ class MergedPlaylist extends Model
     use HasFactory;
     use ShortUrlTrait;
 
+    protected $attributes = [
+        'group_order_custom' => false,
+    ];
+
     /**
      * The attributes that should be cast to native types.
      *
@@ -41,6 +45,7 @@ class MergedPlaylist extends Model
         'use_sticky_session' => 'boolean',
         'id_channel_by' => PlaylistChannelId::class,
         'disable_m3u_xtream_format' => 'boolean',
+        'group_order_custom' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -60,7 +65,16 @@ class MergedPlaylist extends Model
 
     public function playlists(): BelongsToMany
     {
-        return $this->belongsToMany(Playlist::class, 'merged_playlist_playlist');
+        return $this->belongsToMany(Playlist::class, 'merged_playlist_playlist')
+            ->using(MergedPlaylistPivot::class)
+            ->withPivot('sort')
+            ->orderByRaw('COALESCE(merged_playlist_playlist.sort, playlists.id)')
+            ->orderBy('playlists.id');
+    }
+
+    public function hasCustomGroupOrder(): bool
+    {
+        return (bool) $this->group_order_custom;
     }
 
     public function channels(): HasManyThrough

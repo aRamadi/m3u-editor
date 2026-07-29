@@ -1157,8 +1157,21 @@ class XtreamApiController extends Controller
 
                     return $cat;
                 }, $liveCategories);
+            } elseif ($playlist instanceof MergedPlaylist) {
+                // Merged playlists deliver groups in their configured order (custom order,
+                // or source-playlist attach order then each playlist's own group order)
+                // rather than the raw groups.sort_order scramble.
+                $groups = PlaylistGenerateController::getMergedPlaylistGroupsQuery($playlist, isVod: false)->get();
+
+                foreach ($groups as $group) {
+                    $liveCategories[] = [
+                        'category_id' => (string) $group->id,
+                        'category_name' => $group->name,
+                        'parent_id' => 0,
+                    ];
+                }
             } else {
-                // For regular Playlist and MergedPlaylist, use the groups() relationship
+                // For regular Playlist, use the groups() relationship
                 $groups = $playlist->groups()
                     ->orderBy('sort_order')
                     ->whereHas('channels', function ($query) use ($aliasLiveGroupFilter) {
@@ -1267,8 +1280,21 @@ class XtreamApiController extends Controller
 
                     return $cat;
                 }, $vodCategories);
+            } elseif ($playlist instanceof MergedPlaylist) {
+                // Merged playlists deliver groups in their configured order (custom order,
+                // or source-playlist attach order then each playlist's own group order)
+                // rather than the raw groups.sort_order scramble.
+                $vodGroups = PlaylistGenerateController::getMergedPlaylistGroupsQuery($playlist, isVod: true)->get();
+
+                foreach ($vodGroups as $group) {
+                    $vodCategories[] = [
+                        'category_id' => (string) $group->id,
+                        'category_name' => $group->name,
+                        'parent_id' => 0,
+                    ];
+                }
             } else {
-                // For regular Playlist and MergedPlaylist, use the groups() relationship
+                // For regular Playlist, use the groups() relationship
                 $vodGroups = $playlist->groups()
                     ->orderBy('sort_order')
                     ->whereHas('channels', function ($query) use ($aliasVodGroupFilter) {

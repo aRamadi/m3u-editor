@@ -271,6 +271,7 @@
                                     <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                         {{ $stats['group_count'] ?? 0 }}
                                     </div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Enabled: {{ $stats['enabled_group_count'] ?? 0 }}</span>
                                 </div>
                             </div>
                         </div>

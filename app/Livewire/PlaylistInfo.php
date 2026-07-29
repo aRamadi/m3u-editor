@@ -88,6 +88,7 @@ class PlaylistInfo extends Component
             'vod_count' => $playlist->vod_channels()->count(),
             'series_count' => $playlist->series()->count(),
             'group_count' => $playlist->groups()->count(),
+            'enabled_group_count' => $playlist->groups()->where('enabled', true)->count(),
 
             'enabled_channel_count' => $playlist->enabled_live_channels()->count(),
             'enabled_vod_count' => $playlist->enabled_vod_channels()->count(),

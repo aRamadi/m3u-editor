@@ -8,10 +8,13 @@ use App\Facades\PlaylistFacade;
 use App\Facades\ProxyFacade;
 use App\Models\Channel;
 use App\Models\CustomPlaylist;
+use App\Models\Group;
+use App\Models\MergedPlaylist;
 use App\Models\Network;
 use App\Models\Playlist;
 use App\Models\PlaylistAlias;
 use App\Services\PlaylistUrlService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\LazyCollection;
 
@@ -759,6 +762,31 @@ class PlaylistGenerateController extends Controller
                 ->orderByRaw('COALESCE(channel_custom_playlist.sort, channels.sort)')
                 ->orderByRaw('COALESCE(channel_custom_playlist.channel_number, channels.channel)')
                 ->orderBy('channels.title');
+        } elseif ($playlist instanceof MergedPlaylist) {
+            $query->leftJoin('merged_playlist_playlist as merged_playlist_pivot', function ($join) use ($playlist) {
+                $join->on('merged_playlist_pivot.playlist_id', '=', 'channels.playlist_id')
+                    ->where('merged_playlist_pivot.merged_playlist_id', $playlist->id);
+            });
+
+            if ($playlist->hasCustomGroupOrder()) {
+                $query->leftJoin('merged_playlist_group_settings as merged_group_settings', function ($join) use ($playlist) {
+                    $join->on('merged_group_settings.group_id', '=', 'channels.group_id')
+                        ->where('merged_group_settings.merged_playlist_id', $playlist->id);
+                })
+                    ->where(function (Builder $query): void {
+                        $query->whereNull('merged_group_settings.enabled')
+                            ->orWhere('merged_group_settings.enabled', true);
+                    })
+                    ->orderByRaw('CASE WHEN merged_group_settings.sort IS NULL THEN 1 ELSE 0 END')
+                    ->orderBy('merged_group_settings.sort');
+            }
+
+            $query->orderByRaw('COALESCE(merged_playlist_pivot.sort, merged_playlist_pivot.playlist_id)')
+                ->orderBy('groups.sort_order')
+                ->orderBy('groups.id')
+                ->orderBy('channels.sort')
+                ->orderBy('channels.channel')
+                ->orderBy('channels.title');
         } else {
             // Per-alias custom live group ordering (optional). When enabled, the
             // selected live groups are ranked by the alias's saved order; any group
@@ -785,6 +813,44 @@ class PlaylistGenerateController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * Groups for a merged playlist's category listing (e.g. Xtream get_live_categories /
+     * get_vod_categories), ordered the same way as getChannelQuery() above: the saved
+     * custom group order when set, otherwise source-playlist attach order then each
+     * playlist's own group order.
+     */
+    public static function getMergedPlaylistGroupsQuery(MergedPlaylist $playlist, bool $isVod): Builder
+    {
+        $query = Group::query()
+            ->join('merged_playlist_playlist as merged_playlist_pivot', function ($join) use ($playlist) {
+                $join->on('merged_playlist_pivot.playlist_id', '=', 'groups.playlist_id')
+                    ->where('merged_playlist_pivot.merged_playlist_id', $playlist->id);
+            })
+            ->whereHas('channels', fn (Builder $query) => $query
+                ->where('enabled', true)
+                ->where('is_vod', $isVod)
+            )
+            ->select('groups.*');
+
+        if ($playlist->hasCustomGroupOrder()) {
+            $query->leftJoin('merged_playlist_group_settings as merged_group_settings', function ($join) use ($playlist) {
+                $join->on('merged_group_settings.group_id', '=', 'groups.id')
+                    ->where('merged_group_settings.merged_playlist_id', $playlist->id);
+            })
+                ->where(function (Builder $query): void {
+                    $query->whereNull('merged_group_settings.enabled')
+                        ->orWhere('merged_group_settings.enabled', true);
+                })
+                ->orderByRaw('CASE WHEN merged_group_settings.sort IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('merged_group_settings.sort');
+        }
+
+        return $query
+            ->orderByRaw('COALESCE(merged_playlist_pivot.sort, merged_playlist_pivot.playlist_id)')
+            ->orderBy('groups.sort_order')
+            ->orderBy('groups.id');
     }
 
     /**

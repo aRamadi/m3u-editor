@@ -228,6 +228,14 @@ class Playlist extends Model
         return $this->hasMany(Group::class);
     }
 
+    /**
+     * Groups that have the enabled flag set to true.
+     */
+    public function enabled_groups(): HasMany
+    {
+        return $this->hasMany(Group::class)->where('enabled', true);
+    }
+
     public function liveGroups(): HasMany
     {
         return $this->groups()->where('type', 'live');

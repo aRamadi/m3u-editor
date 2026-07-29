@@ -34,6 +34,7 @@ class Group extends Model
         'playlist_id' => 'integer',
         'stream_profile_id' => 'integer',
         'aed_profile_id' => 'integer',
+        'enabled' => 'boolean',
     ];
 
     public function user(): BelongsTo
